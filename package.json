@@ -1,0 +1,16 @@
+{
+  "name": "qr-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A free, dependency-free QR code generator with vanilla JS core and Vue/React wrappers",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build:core": "npm run build -w packages/core",
+    "build:vue": "npm run build -w packages/vue",
+    "build:react": "npm run build -w packages/react"
+  }
+}
