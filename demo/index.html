@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Generator — Free &amp; Open Source</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface-hover: #22222f;
+      --border: #2a2a3a;
+      --text: #e8e8f0;
+      --text-muted: #8888a0;
+      --accent: #6c5ce7;
+      --accent-hover: #7d6ff0;
+      --success: #00cec9;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 2rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--success));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Controls panel */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .control-group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+
+    .control-group h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+
+    input[type="text"],
+    input[type="url"],
+    textarea {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
+
+    select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238888a0'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    /* Shape picker grid */
+    .shape-picker {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .shape-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.5rem;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .shape-option:hover {
+      border-color: var(--accent);
+      background: var(--surface-hover);
+    }
+
+    .shape-option.active {
+      border-color: var(--accent);
+      background: rgba(108, 92, 231, 0.15);
+      color: var(--text);
+    }
+
+    .shape-option svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    /* Color inputs */
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .color-row label {
+      margin-bottom: 0;
+      min-width: 90px;
+    }
+
+    input[type="color"] {
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+      background: var(--bg);
+      cursor: pointer;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+    .color-hex {
+      width: 90px;
+      padding: 0.4rem 0.6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: monospace;
+    }
+
+    /* Toggle / checkbox row */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .toggle-row label {
+      margin-bottom: 0;
+    }
+
+    /* Range inputs */
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      margin: 0.25rem 0;
+    }
+
+    .range-row {
+      margin-bottom: 0.5rem;
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* File input */
+    .file-input-wrapper {
+      position: relative;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      display: none;
+    }
+
+    .file-input-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .file-input-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .file-input-name {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    .clear-image-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-left: 0.5rem;
+    }
+
+    .clear-image-btn:hover {
+      border-color: #e74c3c;
+      color: #e74c3c;
+    }
+
+    /* Preview panel */
+    .preview-panel {
+      position: sticky;
+      top: 2rem;
+    }
+
+    .preview-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .preview-card h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    #qr-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    #qr-preview svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .download-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface-hover);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .ec-level-picker {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.4rem;
+    }
+
+    .ec-option {
+      padding: 0.45rem;
+      text-align: center;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .ec-option:hover {
+      border-color: var(--accent);
+    }
+
+    .ec-option.active {
+      border-color: var(--accent);
+      background: rgba(108, 92, 231, 0.15);
+    }
+
+    .ec-option small {
+      display: block;
+      font-weight: 400;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Gradient controls */
+    .gradient-controls {
+      display: none;
+      margin-top: 0.75rem;
+    }
+
+    .gradient-controls.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>QR Code Generator</h1>
+    <p>Free &amp; open source. No limits. No sign-up. No expiration.</p>
+  </header>
+
+  <div class="container">
+    <!-- Left: Controls -->
+    <div class="controls">
+
+      <!-- Content input -->
+      <div class="control-group">
+        <h3>Content</h3>
+        <label for="qr-text">Text or URL</label>
+        <textarea id="qr-text" placeholder="Enter text, URL, email, phone number...">https://github.com</textarea>
+      </div>
+
+      <!-- Error correction -->
+      <div class="control-group">
+        <h3>Error Correction</h3>
+        <div class="ec-level-picker">
+          <div class="ec-option" data-ec="L">L<small>7%</small></div>
+          <div class="ec-option active" data-ec="M">M<small>15%</small></div>
+          <div class="ec-option" data-ec="Q">Q<small>25%</small></div>
+          <div class="ec-option" data-ec="H">H<small>30%</small></div>
+        </div>
+      </div>
+
+      <!-- Dot shape -->
+      <div class="control-group">
+        <h3>Dot Style</h3>
+        <div class="shape-picker" id="dot-shape-picker">
+          <div class="shape-option active" data-shape="square">
+            <svg viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" fill="currentColor"/></svg>
+            <span>Square</span>
+          </div>
+          <div class="shape-option" data-shape="rounded">
+            <svg viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="6" fill="currentColor"/></svg>
+            <span>Rounded</span>
+          </div>
+          <div class="shape-option" data-shape="dots">
+            <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="currentColor"/></svg>
+            <span>Circle</span>
+          </div>
+          <div class="shape-option" data-shape="diamond">
+            <svg viewBox="0 0 32 32"><polygon points="16,2 30,16 16,30 2,16" fill="currentColor"/></svg>
+            <span>Diamond</span>
+          </div>
+          <div class="shape-option" data-shape="star">
+            <svg viewBox="0 0 32 32"><polygon points="16,2 20,12 30,12 22,19 25,30 16,23 7,30 10,19 2,12 12,12" fill="currentColor"/></svg>
+            <span>Star</span>
+          </div>
+          <div class="shape-option" data-shape="heart">
+            <svg viewBox="0 0 32 32"><path d="M16,28 C12,24 2,18 2,10 C2,5 6,2 10,2 C13,2 15,4 16,6 C17,4 19,2 22,2 C26,2 30,5 30,10 C30,18 20,24 16,28z" fill="currentColor"/></svg>
+            <span>Heart</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Corner square shape -->
+      <div class="control-group">
+        <h3>Corner Border Style</h3>
+        <div class="shape-picker" id="corner-square-picker">
+          <div class="shape-option active" data-shape="square">
+            <svg viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+            <span>Square</span>
+          </div>
+          <div class="shape-option" data-shape="rounded">
+            <svg viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" rx="5" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+            <span>Rounded</span>
+          </div>
+          <div class="shape-option" data-shape="circle">
+            <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+            <span>Circle</span>
+          </div>
+          <div class="shape-option" data-shape="extraRounded">
+            <svg viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" rx="12" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+            <span>Pill</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Corner dot shape -->
+      <div class="control-group">
+        <h3>Corner Center Style</h3>
+        <div class="shape-picker" id="corner-dot-picker">
+          <div class="shape-option active" data-shape="square">
+            <svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" fill="currentColor"/></svg>
+            <span>Square</span>
+          </div>
+          <div class="shape-option" data-shape="rounded">
+            <svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" rx="5" fill="currentColor"/></svg>
+            <span>Rounded</span>
+          </div>
+          <div class="shape-option" data-shape="circle">
+            <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="10" fill="currentColor"/></svg>
+            <span>Circle</span>
+          </div>
+          <div class="shape-option" data-shape="diamond">
+            <svg viewBox="0 0 32 32"><polygon points="16,4 28,16 16,28 4,16" fill="currentColor"/></svg>
+            <span>Diamond</span>
+          </div>
+          <div class="shape-option" data-shape="star">
+            <svg viewBox="0 0 32 32"><polygon points="16,4 19,13 28,13 21,18 23,28 16,22 9,28 11,18 4,13 13,13" fill="currentColor"/></svg>
+            <span>Star</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colors -->
+      <div class="control-group">
+        <h3>Colors</h3>
+        <div class="color-row">
+          <label>Dot Color</label>
+          <input type="color" id="dot-color" value="#000000">
+          <input type="text" class="color-hex" id="dot-color-hex" value="#000000">
+        </div>
+        <div class="color-row">
+          <label>Corner Border</label>
+          <input type="color" id="corner-square-color" value="#000000">
+          <input type="text" class="color-hex" id="corner-square-color-hex" value="#000000">
+        </div>
+        <div class="color-row">
+          <label>Corner Center</label>
+          <input type="color" id="corner-dot-color" value="#000000">
+          <input type="text" class="color-hex" id="corner-dot-color-hex" value="#000000">
+        </div>
+        <div class="color-row">
+          <label>Background</label>
+          <input type="color" id="bg-color" value="#ffffff">
+          <input type="text" class="color-hex" id="bg-color-hex" value="#ffffff">
+        </div>
+
+        <!-- Gradient toggle -->
+        <div class="toggle-row" style="margin-top: 0.75rem;">
+          <label>Use Gradient</label>
+          <select id="gradient-type" style="width: auto; min-width: 120px;">
+            <option value="none">None</option>
+            <option value="linear">Linear</option>
+            <option value="radial">Radial</option>
+          </select>
+        </div>
+
+        <div class="gradient-controls" id="gradient-controls">
+          <div class="color-row">
+            <label>Start Color</label>
+            <input type="color" id="gradient-start" value="#6c5ce7">
+            <input type="text" class="color-hex" id="gradient-start-hex" value="#6c5ce7">
+          </div>
+          <div class="color-row">
+            <label>End Color</label>
+            <input type="color" id="gradient-end" value="#00cec9">
+            <input type="text" class="color-hex" id="gradient-end-hex" value="#00cec9">
+          </div>
+          <div class="range-row" id="gradient-rotation-row">
+            <label>Rotation: <span id="rotation-value">0</span>&deg;</label>
+            <input type="range" id="gradient-rotation" min="0" max="360" value="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Center image -->
+      <div class="control-group">
+        <h3>Center Image (Logo)</h3>
+        <div class="file-input-wrapper">
+          <label class="file-input-btn" for="center-image-input">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Image
+          </label>
+          <input type="file" id="center-image-input" accept="image/*">
+          <div class="file-input-name" id="center-image-name">No image selected</div>
+        </div>
+        <div class="range-row" style="margin-top: 0.75rem;">
+          <label>Image Size: <span id="image-size-value">25</span>%</label>
+          <input type="range" id="center-image-size" min="10" max="40" value="25">
+        </div>
+        <div class="range-row">
+          <label>Image Margin: <span id="image-margin-value">4</span>px</label>
+          <input type="range" id="center-image-margin" min="0" max="20" value="4">
+        </div>
+      </div>
+
+      <!-- Margin -->
+      <div class="control-group">
+        <h3>QR Margin</h3>
+        <div class="range-row">
+          <label>Quiet Zone: <span id="margin-value">4</span> modules</label>
+          <input type="range" id="qr-margin" min="0" max="10" value="4">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: Preview -->
+    <div class="preview-panel">
+      <div class="preview-card">
+        <h3>Preview</h3>
+        <div id="qr-preview"></div>
+        <div class="download-buttons">
+          <button class="btn btn-primary" id="download-svg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            SVG
+          </button>
+          <button class="btn btn-primary" id="download-png">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            PNG
+          </button>
+          <button class="btn btn-secondary" id="copy-svg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy SVG
+          </button>
+          <button class="btn btn-secondary" id="copy-png">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy PNG
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>100% free. No tracking. No limits. <a href="https://github.com/TheStonePixel/QR-Generator" target="_blank">View on GitHub</a></p>
+    <p style="margin-top: 0.25rem;">Licensed under Apache 2.0 &mdash; use it however you want.</p>
+  </footer>
+
+  <script type="module">
+    import { generate } from '../packages/core/src/qr-core.js';
+    import { toStyledSVG } from '../packages/core/src/qr-styled.js';
+
+    // -----------------------------------------------------------------------
+    // State
+    // -----------------------------------------------------------------------
+
+    const state = {
+      text: 'https://github.com',
+      ecLevel: 'M',
+      dotShape: 'square',
+      cornerSquareShape: 'square',
+      cornerDotShape: 'square',
+      dotColor: '#000000',
+      cornerSquareColor: '#000000',
+      cornerDotColor: '#000000',
+      backgroundColor: '#ffffff',
+      gradientType: 'none',
+      gradientStart: '#6c5ce7',
+      gradientEnd: '#00cec9',
+      gradientRotation: 0,
+      centerImage: null,
+      centerImageSize: 0.25,
+      centerImageMargin: 4,
+      margin: 4,
+    };
+
+    // -----------------------------------------------------------------------
+    // Render QR
+    // -----------------------------------------------------------------------
+
+    function renderQR() {
+      const preview = document.getElementById('qr-preview');
+
+      if (!state.text.trim()) {
+        preview.innerHTML = '<p style="color: #999;">Enter some text to generate a QR code</p>';
+        return;
+      }
+
+      try {
+        const ecLevel = state.centerImage ? 'H' : state.ecLevel;
+        const qr = generate(state.text, { ecLevel });
+
+        const options = {
+          margin: state.margin,
+          dotShape: state.dotShape,
+          cornerSquareShape: state.cornerSquareShape,
+          cornerDotShape: state.cornerDotShape,
+          dotColor: state.dotColor,
+          cornerSquareColor: state.cornerSquareColor,
+          cornerDotColor: state.cornerDotColor,
+          backgroundColor: state.backgroundColor,
+          centerImage: state.centerImage,
+          centerImageSize: state.centerImageSize,
+          centerImageMargin: state.centerImageMargin,
+        };
+
+        if (state.gradientType !== 'none') {
+          options.gradientType = state.gradientType;
+          options.gradientColors = [state.gradientStart, state.gradientEnd];
+          options.gradientRotation = state.gradientRotation;
+        }
+
+        const svg = toStyledSVG(qr, options);
+        preview.innerHTML = svg;
+      } catch (err) {
+        preview.innerHTML = `<p style="color: #e74c3c; font-size: 0.85rem;">${err.message}</p>`;
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Shape picker helpers
+    // -----------------------------------------------------------------------
+
+    function initShapePicker(containerId, stateKey) {
+      const container = document.getElementById(containerId);
+      container.addEventListener('click', (e) => {
+        const option = e.target.closest('.shape-option');
+        if (!option) return;
+
+        container.querySelectorAll('.shape-option').forEach(o => o.classList.remove('active'));
+        option.classList.add('active');
+        state[stateKey] = option.dataset.shape;
+        renderQR();
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Color input sync helpers
+    // -----------------------------------------------------------------------
+
+    function syncColor(colorId, hexId, stateKey) {
+      const colorInput = document.getElementById(colorId);
+      const hexInput = document.getElementById(hexId);
+
+      colorInput.addEventListener('input', () => {
+        hexInput.value = colorInput.value;
+        state[stateKey] = colorInput.value;
+        renderQR();
+      });
+
+      hexInput.addEventListener('input', () => {
+        const val = hexInput.value;
+        if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+          colorInput.value = val;
+          state[stateKey] = val;
+          renderQR();
+        }
+      });
+
+      hexInput.addEventListener('blur', () => {
+        let val = hexInput.value.trim();
+        if (!val.startsWith('#')) val = '#' + val;
+        if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+          hexInput.value = val;
+          colorInput.value = val;
+          state[stateKey] = val;
+          renderQR();
+        } else {
+          hexInput.value = state[stateKey];
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Initialize controls
+    // -----------------------------------------------------------------------
+
+    // Text input
+    document.getElementById('qr-text').addEventListener('input', (e) => {
+      state.text = e.target.value;
+      renderQR();
+    });
+
+    // EC Level
+    document.querySelectorAll('.ec-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.ec-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+        state.ecLevel = opt.dataset.ec;
+        renderQR();
+      });
+    });
+
+    // Shape pickers
+    initShapePicker('dot-shape-picker', 'dotShape');
+    initShapePicker('corner-square-picker', 'cornerSquareShape');
+    initShapePicker('corner-dot-picker', 'cornerDotShape');
+
+    // Colors
+    syncColor('dot-color', 'dot-color-hex', 'dotColor');
+    syncColor('corner-square-color', 'corner-square-color-hex', 'cornerSquareColor');
+    syncColor('corner-dot-color', 'corner-dot-color-hex', 'cornerDotColor');
+    syncColor('bg-color', 'bg-color-hex', 'backgroundColor');
+    syncColor('gradient-start', 'gradient-start-hex', 'gradientStart');
+    syncColor('gradient-end', 'gradient-end-hex', 'gradientEnd');
+
+    // Gradient
+    document.getElementById('gradient-type').addEventListener('change', (e) => {
+      state.gradientType = e.target.value;
+      const controls = document.getElementById('gradient-controls');
+      const rotationRow = document.getElementById('gradient-rotation-row');
+      controls.classList.toggle('visible', e.target.value !== 'none');
+      rotationRow.style.display = e.target.value === 'linear' ? '' : 'none';
+      renderQR();
+    });
+
+    document.getElementById('gradient-rotation').addEventListener('input', (e) => {
+      state.gradientRotation = parseInt(e.target.value);
+      document.getElementById('rotation-value').textContent = e.target.value;
+      renderQR();
+    });
+
+    // Center image
+    document.getElementById('center-image-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        state.centerImage = evt.target.result;
+        document.getElementById('center-image-name').innerHTML =
+          `${file.name} <button class="clear-image-btn" id="clear-image">Remove</button>`;
+        document.getElementById('clear-image').addEventListener('click', () => {
+          state.centerImage = null;
+          document.getElementById('center-image-name').textContent = 'No image selected';
+          document.getElementById('center-image-input').value = '';
+          renderQR();
+        });
+        renderQR();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('center-image-size').addEventListener('input', (e) => {
+      state.centerImageSize = parseInt(e.target.value) / 100;
+      document.getElementById('image-size-value').textContent = e.target.value;
+      renderQR();
+    });
+
+    document.getElementById('center-image-margin').addEventListener('input', (e) => {
+      state.centerImageMargin = parseInt(e.target.value);
+      document.getElementById('image-margin-value').textContent = e.target.value;
+      renderQR();
+    });
+
+    // Margin
+    document.getElementById('qr-margin').addEventListener('input', (e) => {
+      state.margin = parseInt(e.target.value);
+      document.getElementById('margin-value').textContent = e.target.value;
+      renderQR();
+    });
+
+    // -----------------------------------------------------------------------
+    // Download / Copy functions
+    // -----------------------------------------------------------------------
+
+    function getSVGString() {
+      return document.getElementById('qr-preview').innerHTML;
+    }
+
+    function downloadFile(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function svgToPng(svgString, scale = 4) {
+      return new Promise((resolve) => {
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            URL.revokeObjectURL(url);
+            resolve(blob);
+          }, 'image/png');
+        };
+        img.src = url;
+      });
+    }
+
+    document.getElementById('download-svg').addEventListener('click', () => {
+      downloadFile(getSVGString(), 'qr-code.svg', 'image/svg+xml');
+    });
+
+    document.getElementById('download-png').addEventListener('click', async () => {
+      const blob = await svgToPng(getSVGString());
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'qr-code.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('copy-svg').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(getSVGString());
+      const btn = document.getElementById('copy-svg');
+      const original = btn.innerHTML;
+      btn.innerHTML = '&#10003; Copied!';
+      setTimeout(() => btn.innerHTML = original, 1500);
+    });
+
+    document.getElementById('copy-png').addEventListener('click', async () => {
+      const blob = await svgToPng(getSVGString());
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      const btn = document.getElementById('copy-png');
+      const original = btn.innerHTML;
+      btn.innerHTML = '&#10003; Copied!';
+      setTimeout(() => btn.innerHTML = original, 1500);
+    });
+
+    // -----------------------------------------------------------------------
+    // Initial render
+    // -----------------------------------------------------------------------
+
+    renderQR();
+  </script>
+</body>
+</html>

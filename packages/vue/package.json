@@ -1,0 +1,27 @@
+{
+  "name": "@stone-pixel/qr-vue",
+  "version": "1.0.0",
+  "description": "Vue 3 QR code generator component with customizable styling",
+  "license": "Apache-2.0",
+  "main": "src/QRCode.vue",
+  "module": "src/QRCode.vue",
+  "exports": {
+    ".": "./src/QRCode.vue"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "vue": ">=3.0.0"
+  },
+  "dependencies": {
+    "@stone-pixel/qr-core": "^1.0.0"
+  },
+  "keywords": [
+    "qr",
+    "qrcode",
+    "vue",
+    "vue3",
+    "component"
+  ]
+}
